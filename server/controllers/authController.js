@@ -14,7 +14,7 @@ export const loginUser = asyncHandler(async (req, res) => {
   if (user && (await user.matchPassword(password))) {
     if (!user.isVerified) {
       res.status(401);
-      throw new Error('Please verify your email to login');
+      throw new Error('Account not verified. Please check your email');
     }
 
     res.json({
@@ -88,6 +88,59 @@ export const registerUser = asyncHandler(async (req, res) => {
       success: true,
       message: 'OTP sent to email',
       email: user.email
+    });
+  } catch (err) {
+    res.status(500);
+    throw new Error('Email could not be sent');
+  }
+});
+
+// @desc    Resend OTP
+// @route   POST /api/auth/resend-otp
+// @access  Public
+export const resendOTP = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  if (user.isVerified) {
+    res.status(400);
+    throw new Error('Account is already verified');
+  }
+
+  // Generate new OTP
+  const otp = user.getVerificationToken();
+  await user.save();
+
+  // Send OTP Email
+  const message = `Your new verification code is: ${otp}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #6366f1;">New Verification Code</h2>
+      <p>Here is your new verification code to activate your account:</p>
+      <div style="background: #f4f4f4; padding: 20px; border-radius: 10px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #6366f1;">
+        ${otp}
+      </div>
+      <p style="margin-top: 20px; font-size: 14px; color: #666;">This code will expire shortly.</p>
+    </div>
+  `;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: 'New Account Verification Code',
+      message,
+      html
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'New OTP sent to email'
     });
   } catch (err) {
     res.status(500);
