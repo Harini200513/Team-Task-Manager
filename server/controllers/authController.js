@@ -37,26 +37,31 @@ export const loginUser = asyncHandler(async (req, res) => {
 export const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
 
-  const userExists = await User.findOne({ email });
+  let user = await User.findOne({ email });
 
-  if (userExists) {
+  if (user && user.isVerified) {
     res.status(400);
     throw new Error('User already exists');
   }
 
-  const user = new User({
-    name,
-    email,
-    password,
-    role: role || 'member'
-  });
+  // If user exists but is not verified, update their info
+  if (user && !user.isVerified) {
+    user.name = name;
+    user.password = password;
+    user.role = role || 'member';
+  } else {
+    // Create new unverified user
+    user = new User({
+      name,
+      email,
+      password,
+      role: role || 'member'
+    });
+  }
 
   // Get verification token
   const otp = user.getVerificationToken();
-
-  console.log(`[DEBUG] Attempting to save user to DB: ${email}`);
   await user.save();
-  console.log(`[DEBUG] User saved successfully. Attempting to send email to: ${email}`);
 
   // Send OTP Email
   const message = `Welcome to TeamTask Pro! Your verification code is: ${otp}`;
@@ -78,7 +83,6 @@ export const registerUser = asyncHandler(async (req, res) => {
       message,
       html
     });
-    console.log(`[DEBUG] Email sent successfully to: ${email}`);
 
     res.status(201).json({
       success: true,
@@ -86,7 +90,6 @@ export const registerUser = asyncHandler(async (req, res) => {
       email: user.email
     });
   } catch (err) {
-    console.error(`[DEBUG] Email Error: ${err.message}`);
     res.status(500);
     throw new Error('Email could not be sent');
   }
