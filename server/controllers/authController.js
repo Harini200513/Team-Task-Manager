@@ -1,7 +1,7 @@
 import User from '../models/User.js';
 import generateToken from '../utils/generateToken.js';
 import asyncHandler from 'express-async-handler';
-import sendEmail from '../utils/sendEmail.js';
+import { sendEmail } from '../utils/sendEmail.js';
 
 // @desc    Auth user & get token
 // @route   POST /api/auth/login
