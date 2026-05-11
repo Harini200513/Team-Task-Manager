@@ -30,24 +30,32 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/activities', activityRoutes);
 
-if (process.env.NODE_ENV === 'production') {
-  const __dirname = path.resolve();
-  app.use(express.static(path.join(__dirname, '../client/dist')));
+const __dirname = path.resolve();
+const distPath = path.join(__dirname, '../client/dist');
 
-  app.get('*', (req, res) =>
-    res.sendFile(path.resolve(__dirname, '../client', 'dist', 'index.html'))
-  );
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(distPath));
+
+  // Serve the frontend for any non-API routes
+  app.get(/^(?!\/api).+/, (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
 } else {
   app.get('/', (req, res) => {
     res.send('API is running...');
   });
 }
 
+// 404 handler for unknown API routes
+app.use('/api', (req, res) => {
+  res.status(404).json({ message: 'API route not found' });
+});
+
 // Error handling middleware
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
