@@ -10,7 +10,9 @@ const OTPVerification = () => {
   const email = searchParams.get('email');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(30);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,6 +20,14 @@ const OTPVerification = () => {
       navigate('/register');
     }
   }, [email, navigate]);
+
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   const handleChange = (element, index) => {
     if (isNaN(element.value)) return false;
@@ -35,6 +45,21 @@ const OTPVerification = () => {
       if (otp[index] === '' && e.target.previousSibling) {
         e.target.previousSibling.focus();
       }
+    }
+  };
+
+  const handleResend = async () => {
+    if (countdown > 0) return;
+
+    setIsResending(true);
+    try {
+      await api.post('/auth/resend-otp', { email });
+      toast.success('New code sent to your email!');
+      setCountdown(60); // Increase countdown after resend
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to resend code');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -108,16 +133,29 @@ const OTPVerification = () => {
                 {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'Verify & Continue'}
               </button>
 
-              <p className="text-center text-sm text-textMuted">
+              <div className="text-center text-sm text-textMuted">
                 Didn't receive the code?{' '}
                 <button 
                   type="button"
-                  className="text-primary hover:underline font-medium"
-                  onClick={() => toast.success('New code sent!')}
+                  disabled={countdown > 0 || isResending}
+                  className={`font-medium transition-colors ${
+                    countdown > 0 || isResending 
+                      ? 'text-white/20 cursor-not-allowed' 
+                      : 'text-primary hover:underline'
+                  }`}
+                  onClick={handleResend}
                 >
-                  Resend
+                  {isResending ? (
+                    <span className="flex items-center gap-1">
+                      <Loader2 size={14} className="animate-spin" /> Sending...
+                    </span>
+                  ) : countdown > 0 ? (
+                    `Resend in ${countdown}s`
+                  ) : (
+                    'Resend Now'
+                  )}
                 </button>
-              </p>
+              </div>
             </form>
           ) : (
             <motion.div 
