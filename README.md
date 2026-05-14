@@ -2,7 +2,6 @@
 
 A high-performance, full-stack Project Management SaaS built using the **MERN Stack** (MongoDB, Express, React, Node.js). Designed for teams that prioritize security, organization, and real-time productivity.
 
-![Landing Page MERN](https://via.placeholder.com/1200x600/1e1e1e/6366f1?text=TeamTask+Pro+SaaS+Platform)
 
 ## ✨ Premium Features
 
